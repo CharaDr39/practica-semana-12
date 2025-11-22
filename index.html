@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diccionario en inglés</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+
+    :root {
+      --accent-color: #8E2DE2;
+      --accent-hover: #6D0EB5;
+      --bg-color: #0f0f17;
+      --container-bg: #1a1a2e;
+      --card-bg: #22223c;
+      --text-color: #e2e2e2;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Poppins', Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 700px;
+      border: 2px solid var(--accent-color);
+      border-radius: 12px;
+      background-color: var(--container-bg);
+      padding: 30px;
+      box-sizing: border-box;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin: 0 0 25px;
+      color: var(--accent-color);
+    }
+
+    .search-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .search-area label {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .search-area input[type="text"] {
+      padding: 12px 15px;
+      font-size: 1rem;
+      border: 1px solid var(--accent-color);
+      border-radius: 8px;
+      background-color: #2d2d44;
+      color: #ffffff;
+      transition: border 0.2s ease;
+    }
+
+    .search-area input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent-hover);
+    }
+
+    .search-area button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background-color: var(--accent-color);
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+    }
+
+    .search-area button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .error-message {
+      color: #f95f62;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .results {
+      border: 1px solid var(--accent-color);
+      border-radius: 8px;
+      background-color: var(--card-bg);
+      padding: 20px;
+    }
+
+    .result-section {
+      margin-bottom: 25px;
+    }
+
+    .result-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .result-section h2 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      color: var(--accent-color);
+    }
+
+    .result-section p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .result-section ul {
+      list-style: disc;
+      padding-left: 20px;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .result-section ul li + li {
+      margin-top: 4px;
+    }
+
+
+    audio {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #8888aa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Diccionario en inglés</h1>
+    <div class="search-area">
+      <label for="wordInput">Digite la palabra a buscar</label>
+      <input type="text" id="wordInput" placeholder="Ejemplo: hello" />
+      <button type="button" id="searchButton">Buscar</button>
+    </div>
+    <div id="error" class="error-message" style="display:none;"></div>
+    <div class="results" id="results" style="display:none;">
+
+      <div class="result-section" id="definitionSection">
+        <h2>Significado</h2>
+        <p id="definitionText">&nbsp;</p>
+      </div>
+
+      <div class="result-section" id="examplesSection">
+        <h2>Ejemplos de uso</h2>
+        <ul id="examplesList"></ul>
+      </div>
+
+      <div class="result-section" id="audioSection">
+        <h2>Audio (pronunciación)</h2>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+    </div>
+    <footer>
+
+      Creado por Andy Rojas Meneses
+    </footer>
+  </div>
+
+  <script>
+
+    async function searchWord() {
+      const word = document.getElementById('wordInput').value.trim().toLowerCase();
+      const resultsContainer = document.getElementById('results');
+      const errorElement = document.getElementById('error');
+      const definitionText = document.getElementById('definitionText');
+      const examplesList = document.getElementById('examplesList');
+      const audioPlayer = document.getElementById('audioPlayer');
+
+
+      errorElement.style.display = 'none';
+      resultsContainer.style.display = 'none';
+      definitionText.textContent = '';
+      examplesList.innerHTML = '';
+      audioPlayer.src = '';
+
+      if (!word) {
+        errorElement.textContent = 'Por favor, ingrese una palabra.';
+        errorElement.style.display = 'block';
+        return;
+      }
+
+      try {
+
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+        if (!response.ok) {
+          throw new Error('La palabra no fue encontrada en el diccionario.');
+        }
+        const data = await response.json();
+
+        const entry = data[0];
+
+        const definitions = [];
+        const examples = [];
+        if (Array.isArray(entry.meanings)) {
+          entry.meanings.forEach((meaning) => {
+            if (Array.isArray(meaning.definitions)) {
+              meaning.definitions.forEach((def) => {
+                if (def.definition) {
+                  definitions.push(def.definition);
+                }
+                if (def.example) {
+                  examples.push(def.example);
+                }
+              });
+            }
+          });
+        }
+
+        if (definitions.length > 0) {
+          definitionText.textContent = definitions[0];
+        } else {
+          definitionText.textContent = 'No se encontraron definiciones.';
+        }
+
+        if (examples.length > 0) {
+          examples.slice(0, 5).forEach((ex) => {
+            const li = document.createElement('li');
+            li.textContent = ex;
+            examplesList.appendChild(li);
+          });
+        } else {
+          const li = document.createElement('li');
+          li.textContent = 'No se encontraron ejemplos de uso.';
+          examplesList.appendChild(li);
+        }
+
+        let audioSrc = '';
+        if (Array.isArray(entry.phonetics)) {
+          const withAudio = entry.phonetics.find((p) => p.audio);
+          if (withAudio && withAudio.audio) {
+
+            audioSrc = withAudio.audio.startsWith('http')
+              ? withAudio.audio
+              : 'https:' + withAudio.audio;
+          }
+        }
+        if (audioSrc) {
+          audioPlayer.src = audioSrc;
+        } else {
+
+          audioPlayer.removeAttribute('src');
+          audioPlayer.load();
+        }
+
+        resultsContainer.style.display = 'block';
+      } catch (error) {
+        errorElement.textContent = error.message;
+        errorElement.style.display = 'block';
+      }
+    }
+
+    document.getElementById('searchButton').addEventListener('click', searchWord);
+    document.getElementById('wordInput').addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        searchWord();
+      }
+    });
+  </script>
+</body>
+</html>
